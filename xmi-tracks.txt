@@ -1,0 +1,23 @@
+R01 - Slave Pens.xmi
+R02 - Arena.xmi
+R03 - Sewers.xmi
+R04 - Dagolar's Tunnels.xmi
+R05 - White Sands - Messenger Route - Elven Slavers.xmi
+R06 - Elven Caravan.xmi
+R07 - Teaquetzl Village.xmi
+R08 - Lava Rift - Gemfields.xmi
+R09 - Hot Springs - Nazca Lines - Fields.xmi
+R10 - Ssurran Ruins.xmi
+R11 - Red Sands Plateau.xmi
+R12 - Cedrilte Village.xmi
+R13 - Undermountain.xmi
+R14 - Lower Castle - Upper Castle.xmi
+R15 - Gedron Village.xmi
+R16 - Palace Ruins.xmi
+R17 - Menu.xmi
+R18 - Captured Gladiators - Silt Sea Ssurrans - Silt Sea Summoning.xmi
+R19 - Wyrm School.xmi
+R20 - Wyrm Temple - Subterranean Temple.xmi
+R21 - Wyrm Belly.xmi
+R22 - Sand Oasis.xmi
+R23 - Salt Oasis.xmi

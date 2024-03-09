@@ -1,0 +1,970 @@
+MDark packet formats:
+---------------------
+
+Offset          Length      Field
+------          ------      ---------------------------------------------------
+0               2           Packet length. High bit is set for compressed data.
+2               4           ID  'dscc' or 'DScc'
+
+                            'DSRT'  // TEN restart to server
+                            'DSIT'  // TEN Init to server
+                            'DSRC'  // Normal restart to server
+                            'DSIN'  // Normal init to server
+6               4               Name length (len)
+10              len             Name (string)
+                                <end>
+
+                            'dsIN'  // My info, from server
+6               4               My permanent node ID
+                                Priviledge Level for each saved character
+                                    (Level > 4 is protected)
+10              1                   PrivLevel[0]
+11              1                   PrivLevel[1]
+12              1                   PrivLevel[2]
+13              1                   PrivLevel[3]
+14              4               Name length (L0)
+18              L0              Name (string)
+                                for i = 1 to 4
+14 + 4*(i-1) +  4                   Li
+  E(L0..Li)
+18 + 4*(i-1) +  Li                  Sysname[Li]
+  E(L0..Li)
+26 + E(L0..L4)                  <end>
+
+                            'dsGL'  // Global broadcast
+                            'DSGL'  // Global broadcast
+6               4               Remote node ID
+                                    (will convert to node index in array)
+10              4               Data length (dlen)
+14              dlen            Global data (see Payload section)
+                                <end>
+
+                            'dsRG'  // Region broadcast
+                            'DSRG'  // Region broadcast
+6               4               Remote node ID
+10              4               Region (0 is global)
+14              4               Length (Len)
+18              Len             Region data (see Payload section)
+                                <end>
+
+                            'dsMC'  // Combat broadcast
+                            'DSMC'  // Combat broadcast
+6               4               Remote node ID
+10              4               Length (Len)
+14              Len             Combat info (see Payload section)
+                                <end>
+
+                            'dsNR'  // Near broadcast
+                            'DSNR'  // Near broadcast
+6               4               Remote node ID
+10              4               Length (Len)
+14              Len             Near info (see Payload section)
+                                <end>
+
+                            'dsDP'  // Protected Direct Multicast
+                            'DSDP'  // Protected Direct Multicast
+6               4               My node ID
+10              4               Number of Destination IDs (numIDs)
+14              4*numIDs        destID[i]
+14 + 4*numIDs   4               Length (Len)
+18 +            Len             See Payload section
+  4*numIDs +                    <end>
+  Len
+
+                            'dsDI'  // Direct Multicast
+                            'DSDI'  // Direct Multicast
+6               4               My node ID
+10              4               Number of Destination IDs (numIDs)
+14              4*numIDs        destID[i]
+14 + 4*numIDs   4               Length (Len)
+18 +            Len             See Payload section
+  4*numIDs +                    <end>
+  Len
+
+                            'dsPS'  // Location
+                            'DSPS'  // Location
+6               4               My node ID
+10              4               Number of locations (nLocs), n = 0 to nLocs - 1
+14 + 20*n       4                   Node ID
+18 + 20*n       4                   Direction (Hi word) & key (Low word)
+22 + 20*n       4                   X coordinate
+26 + 20*n       4                   Y coordinate
+30 + 20*n       4                   Region (0 is global)
+                                <end>
+
+                            'dsRD'  // Read block
+                            'DSRD'  // Read block
+6               4               My node ID
+10              4               Block type
+14              4               INDEX 1 (block/region)
+18              4               INDEX 2 (block if not region)
+22              4               KEY
+                                Block Types:
+                                'PCQK'  // Party combat
+26              4                   START
+30              4                   LENGTH
+34              LENGTH              charinfo data:
+                                        p   // positioninfo
+34 + 0          1                           len
+34 + 1          2                           iDiskIndex
+34 + 3          2                           clonenum
+34 + 5          2                           x,
+34 + 7          2                           y
+34 + 9          1                           direction
+34 + 10         2                           region	// (0 is global)
+34 + 12         4                           mypermid
+34 + 16         2                           combatnum
+34 + 18         1                           isviolent
+34 + 19         2                           key 	
+34 + 21         2                           curHp	
+34 + 23         2                           curPsi	
+34 + 25         1                           status
+34 + 26         1                           allegiance
+34 + 27         2                           baseHp
+34 + 29         1*3                         level[3]
+34 + 32         1*16                        name[16]
+34 + 48         1                           allowfollow
+34 + 49         1                           acceptstuff
+34 + 50         4                           followid
+34 + 54         1                           race
+34 + 55         1*21                        conditions[21]
+34 + 76         1                           slot
+34 + 77         1*5                         savingThrow[5]
+34 + 82         4                       key
+34 + 86         4                       objectix
+34 + 90         4                       mydata
+34 + 94         4                       changed
+132                                 <end>
+
+                                'PCSA'  // Net load data
+26              4                   Data pack ID
+30              4                   Data pack length (len)
+34              len                 Data pack contents
+34 + len                            <end>
+
+                                'GLRG' // Block data
+                                'GLOB' // Block data
+26              4                   Address
+30              4                   Length (len)
+34              len                 Data
+                                    <end>
+
+                                'PCIN'  // Player Character in
+14              4                   Block # (should be my node ID)
+...
+26              4                   Address (addr), slot = addr/(48 * 4)
+30              4                   Length (len)
+34              len                 My charto data
+                                    <end>
+
+                                'PCOU'  // Player Character out
+14              4                   Block # (should be request node ID)
+...
+26              4                   Address (addr), slot = addr/(48 * 4)
+30              4                   Length (len)
+34              len                 if len > (48 * 4 * 4)
+                                        Remote character data (charfrom)
+                                    else
+                                        Remote profile data
+                                    <end>
+
+                            'dsWT'  // Write verify
+                            'DSWT'  // Write verify
+                            'dsWE'  // Write error
+                            'DSWE'  // Write error
+6               4               Remote/My node ID
+10              4               Type
+                                Write types
+                                    'GLRG'  // Region
+14              4                       Region (INDEX 1), same as gRegion (0 is global)
+18              4                       Block number (INDEX 2)
+                                            0: Read/Write share region/global
+                                            1: pick up/drop item (add/remove)
+                                            2: animation
+                                            3: door
+                                            4: monster
+                                            5: initial item
+                                            6: Regional banner
+22              4                       Key
+26              4                       Block length (blocklen)
+                                    <end>
+
+                                    'GLOB'  // Object
+14              4                       Block (INDEX 1)
+                                            0: Write share global
+                                            1: Unique Items (data is array of uitemstruct's)
+                                            2-17 (16 values): High scores
+                                            18: Chararacter-generated graphics (icons)
+                                            19: Lock version, check array
+                                            20: Banner
+                                            21: Lock Region
+18              4                       unused (INDEX 2)
+22              4                       Key
+26              4                       start
+30              4                       length
+34              length                  data (up to MAXLENGTH = 768 chars per packet)
+34 + MAXLENGTH                      <end>
+
+                                    'PCSA'  // Net save data
+14              12                      Zeros
+26              4                       Data pack ID
+30              4                       Data pack length (len)
+34              len                     Data pack contents
+34 + len
+                                    <end>
+
+                                    'PCIN'  // Player character in
+14              4                       Requested ID
+18              4                       INDEX1 (0)
+22              4                       INDEX2
+26              4                       Key
+30              4                       Start
+34              4                       Length
+38              Length                  Data
+38 + Length                             <end>
+
+                                    'PCOU'  // Profile (char info)
+14              4                       Requested ID
+18              4                       INDEX1 (0)
+22              4                       INDEX2
+26              4                       Key
+30              4                       Start
+34              4                       Length
+38              Length                  Data
+38 + Length                             <end>
+
+                                    'PCQK'  // Location
+14              4                       My node ID
+18              4                       INDEX1 (0)
+22              4                       INDEX2
+26              4                       Key
+30              4                       Start
+34              4                       Length
+38              Length                  Data
+38 + Length                             <end>
+
+                            'dsRI'  // Players list
+                            'DSRI'  // Players list
+6               4               My node ID
+10              4               Region (0 is global)
+14              4               List size (thislistsize)
+18              Var             Request info for each of i = 1 to thislistsize: (L0 = 0)
+18 + 4(i-1) +   4                   Name ID
+  E(L1..Li-1)
+22 + 4(i-1) +   4                   Name Length (Li)
+  E(L1..Li-1)
+26 + 4(i-1) +   Li                  Name String
+  E(L1..Li-1)
+                                <end>
+
+                            'DSMN'  // Name search query
+6               4               My node ID
+10              4               Name length (len)
+14              len             Name string
+15 + len                        <end>
+
+                            'dsMN'  // Name search results (from server)
+6               4               My node ID
+10              4               Queried ID
+14              4               Online check
+18              4               ????
+22              4               ????
+26              4               ????
+30              4               Found region (0 is global)
+34              4               ????
+38              4               SysOp name length (soLen)
+42              soLen           SysOp name
+42 + soLen      4               Found SysOp (has node ID 0 if the server)
+                                <end>
+
+                            'dsCM'  // Combat turn
+                            'DSCM'  // Combat turn
+6               4               My node ID
+10              4               Region number (r) (0 is global)
+14              4               Combat number (c)
+18              4               Combat record key (ckey)
+22              4               Node ID of player with turn (turnid)
+                                <end>
+
+                            'dsCX'  // Combat exit
+                            'DSCX'  // Combat exit
+6               4               r
+10              4               c
+                                <end>
+
+                            'DSDT'  // Date query
+6               4               My node ID
+                                <end>
+
+                            'dsDT'  // Date response
+6               4               Seconds
+10              4               Days
+                                <end>
+
+                            'dsSM'  // Semaphore
+                            'DSSM'  // Semaphore
+                            'dsSR'  // Semaphore error
+                            'DSSR'  // Semaphore error
+6               4               Node ID
+10              2               Region number (0 is global)
+12              4               Semaphore number semaphore values:
+                                    0xFFFFFFFE:         Error
+                                    0:                  Unlocked
+                                    A valid node ID:    Locked by the node
+                                <end>
+
+                            'DSNI'  // Account already logged in
+                            'dsNI'  // Not implemented
+                                No data
+
+                            'dsNM'  // Set slot name
+                            'DSNM'  // Set slot name
+6               4               Slot
+10              4               Name length (L1)
+14              L1              Name string (up to 79 chars + Null)
+                                <end>
+
+                            'DSNO'  // Name error (clear)
+6               4               Slot
+                                <end>
+
+                            'DSCL'  // Ack of end of game
+                            'dsCL'  // Close game
+6               4               My node ID/Slot
+                                <end>
+
+                            'dsSL'  // Host tick
+                            'DSSL'  // Host tick
+                                No data
+
+                            'dsOW'  // Object write
+                            'DSOW'  // Object write
+                            'dsOE'  // Object write error
+                            'DSOE'  // Object write error
+6               4               Node ID
+10              4               Block
+14              4               index1
+18              4               index2
+22              4               Ref
+26              4               At
+                                <end>
+
+                            'dsHS'  // Host message
+                            'DSHS'  // Host message
+6               4               Node ID
+10              4               Message
+                                <end>
+
+                            'dsRS'  // Random number generator seed value
+                            'DSRS'  // Random number generator seed value
+                            'dsRL'  // Ditto
+                            'DSRL'  // Ditto
+6               4               Node ID
+10              4               Slot number (-1 to 3)
+14              4               Seed value
+                                <end>
+
+===============================================================================
+
+                            'DSMD'  // Check for online/Get player ID
+6               4               My node ID
+10              4               ID to check
+                                <end>
+
+                            'DSTQ'  // Release turn
+6               4               My node ID
+10              4               Region
+14              4               Combat number
+18                              <end>
+
+                            'DSLG'  // Crash log
+6               4               len
+10              len             s[BROADSIZE]    // BROADSIZE = 400
+10 + len                        <end>
+
+                            'DSEJ'  // Eject Host
+6               4               My node ID
+10              4               Found node ID
+14                              <end>
+
+                            'DSPV'  // Lock player from game
+                            'DSPV'  // Unlock player from game
+6               4               ID
+10              4               0
+14              4               255 if locking, 0 if unlocking
+18                              <end>
+
+                0           dummy
+
+===============================================================================
+
+Payloads for Packets of types:
+
+                            'DSGL'  // Global (node  0) // To server, for distribution to everyone logged in
+                            'DSRG'  // Region (node -1) // To server, for distribution to all in region?
+                            'DSNR'  // Chat   (node -2) // To server, for distribution to all nearby players?
+                            'DSMC'  // Combat (node -3)
+                            'DSDI'  // Direct (node is Player ID)
+                            'DSDP'  // Direct Protected (node is Player ID)
+                            'dsGL'  // Global (node 0)
+                            'dsRG'  // Region (node -1)
+                            'dsNR'  // Chat   (node -2)
+                            'dsMC'  // Combat (node -3)
+                            'dsDI'  // Direct (node is Player ID)
+                            'dsDP'  // Direct Protected (node is Player ID)
+
+Payloads start at offset 14:
+
+0               2           Packet length
+2               4           Packet type:
+                            'chat'  // Directed Chat
+                            'chax'  // Always Chat
+6               4               My node ID
+10              16              My name
+24              Var             Chat text (NULL terminated)
+25 +            1               Chat Type:
+  strlen(text)                      0: Normal
+                                    1: Party
+                                    2: Local (Direct)
+                                   >2: Sysop
+26 +            Var             Private flag (>2 is priviledged)
+  strlen(text)                      0: Normal
+                                    1: Normal
+                                 >= 2: Sysop
+27 +            Var             Target name (for directed chat)
+  strlen(text)
+30 +                            <end>
+  strlen(text) +
+  strlen(name)
+
+                            'cher'  // Chat error
+6               4               My node ID
+10              4               Error code
+                                    1: Muzzle
+                                 != 1: Target not found
+14              Var             Error description (sDesc)
+14 +                            <end>
+  strlen(sDesc)
+
+                            'cexp'  // Experience to caster
+6               4               Command
+10              4               Region
+14              4               Experience
+                                <end>
+
+                            'crmv'  // Remove charge
+6               4               Charge
+
+                                <end>
+                            'cldf'  // Defense use (cleric)
+6               4               Charge
+                                <end>
+
+                            'brod'  // Send broadcast
+                            'bron'  // Send narrate
+                            'evac'  // Send evacuate (eject)
+6               4               My node ID
+10              16              Name
+26              Var             Text (null terminated)
+27 + len(text)
+                                <end>
+
+                            'locs'  // Locate
+6               4               Command
+                                    0: Locate request
+                                    1: Locate reply
+10              4               My node ID
+14              16              Name
+26              2               Region (unused in request)
+28              2               X coordinate (unused in request)
+30              2               Y coordinate (unused in request)
+                                <end>
+
+                            'diag'  // Disk Diagnostic
+6               4               Command
+                                    1: Request diagnostic
+10              4               My node ID
+14              128             Directory
+142             4               start
+146             4               len
+                                <end>
+
+                            'awar'  // Award experience points
+                            'awag'  // Award group (party)
+6               4               My node ID
+10              4               Experience points
+                                <end>
+
+                            'arst'  // Arrest
+                            'kill'  // Kill
+6               4               Command
+                                    1: Arrest
+                                    2: Kill
+10              80              Describe
+                                <end>
+
+                            'clrg'  // Clear region
+6               4               Command
+10              2               Region
+                                <end>
+
+                            'item'  // Item
+                            'iten'  // Item I can't insert/receive (echo back)
+6               4               My node ID
+10              2               Container ID (< 0 destroys item)
+12              23              Item type (i)
+12 + 0          2                   id
+12 + 2          2                   qty
+12 + 4          2                   next
+12 + 6          2                   value
+12 + 8          2                   packIx
+12 + 10         2                   itemIx
+12 + 12         2                   icon
+12 + 14         2                   charges
+12 + 16         2                   special
+12 + 18         1                   priority
+12 + 19         1                   slot
+12 + 20         2                   nameIx
+12 + 22         1                   adds
+12 + 23                         <end>
+
+                            'glom'  // Glom onto an item
+6               4               My node ID
+10              4               From node ID
+14              4               Command:
+                                    1: Want to glom item
+                                    3: Item unavailable (error)
+18              2               Slot
+20              2               id
+                                <end>
+
+                            'door'  // Send door info
+6               4               My node ID
+10              2               Region
+12              2               X
+14              2               Y
+16              2               ID value
+18              1               Door status
+19              1               Quiet
+                                <end>
+
+                            'rqmy'  // Long request
+6               4               My node ID
+10              4               Request ID
+                                <end>
+
+                            'clou'  // Cloud
+                            'clod'  // Cloud delete
+                            'cloe'  // Cloud error
+6               2               x
+8               2               y
+10              2               size
+12              2               spreadSpeed
+14              4               duration
+18              2               dissipateSpeed
+20              1               cloudIx
+21              1               level
+22              1               allegiance
+23              4               durTime  // starttime
+27              4               nowTime  // current time
+31              4*250           cloud[MAX_CLOUD_POINTS]
+                                    x
+                                    y
+31 + 4*250      4               permid
+35 + 4*250                      <end>
+
+                            'locl'  // Location of node
+                                p   // positioninfo
+6 + 0           1                   len
+6 + 1           2                   iDiskIndex
+6 + 3           2                   clonenum
+6 + 5           2                   x,
+6 + 7           2                   y
+6 + 9           1                   direction
+6 + 10          2                   region	// (0 is global)
+6 + 12          4                   mypermid
+6 + 16          2                   combatnum
+6 + 18          1                   isviolent
+6 + 19          2                   key 	
+6 + 21          2                   curHp	
+6 + 23          2                   curPsi	
+6 + 25          1                   status
+6 + 26          1                   allegiance
+6 + 27          2                   baseHp
+6 + 29          1*3                 level[3]
+6 + 32          1*16                name[16]
+6 + 48          1                   allowfollow
+6 + 49          1                   acceptstuff
+6 + 50          4                   followid
+6 + 54          1                   race
+6 + 55          1*21                conditions[21]
+6 + 76          1                   slot
+6 + 77          1*5                 savingThrow[5]
+6 + 82                          <end>
+
+                            'qloc'  // Quick location data
+6               4               mypermid
+10              2               x
+12              2               y
+14              2               ver
+16              2               direction
+18              2               region
+                                <end>
+
+                            'shin'  // Shared data init
+6               4               region
+10              4               mypermid
+14              4               command
+                                    0: Initializatin request
+                                    2: Region Init/Verified Region
+                                    6: Delete NPC's
+                                    7: Not ready/Request data
+18              1*16            name[16]
+34                              <end>
+
+                            'narr'  // Narrate select?
+6               4               mypermid
+10              4               tscope
+14              2               gNarratePic
+16              1               gNarrateWindowType
+17              2               gRegion
+19              2               uMapX
+21              2               uMapY
+23              1*800           pNarrateText[MAX_NARRATE_TEXT]
+823                             <end>
+
+                            'efct'  // Effect
+6               4               My node ID
+10              4               scope
+14              4               type
+18              4               val1
+22              4               val2
+26              4               val3
+30              4               val4
+34              2               gRegion
+36              2               uMapX
+38              2               uMapY
+                                <end>
+
+                            'flin'  // Follow
+                            'flok'  // Follow Ack
+                            'fler'  // Follow command error
+                            'fllv'  // Follow leave group
+                            'flex'  // Follow expulsion (forced to leave group)
+                            'fltq'  // Follow tick request
+                            'fltk'  // Follow tick
+                            'flte'  // Follow tick error
+6               4               My node ID
+10              4               Leader's node ID
+14              4*4             partyid[4] Node ID's for followers
+30              1*16            name[16] My name
+46                              <end>
+
+                            'flrq'  // Update character data
+                            'flan'  // New character data
+6               4               mypermid
+10                              charrec_t c;
+10              4                   curExp
+14              4                   highExp
+18              2                   baseHp
+20              2                   highHp
+22              2                   basePsi
+24              2                   id
+26              2                   legalClass
+28              1                   race
+29              1                   gender
+30              1                   alignment
+31              1                   baseStat[6]
+32              1*3                 class[3]
+35              1*3                 level[3]
+38              1                   baseAc
+39              1                   baseMove
+40              1                   magicResistance
+41              1                   numBlows
+42              1*3                 numAttack[3]
+45              1*3                 numDice[3]
+48              1*3                 numSides[3]
+51              1*3                 numAdds[3]
+54              1*5                 savingThrow[5]
+59              1                   allegiance
+60              1                   size
+61              1                   spellGroup
+62              1*3                 highLevel[3]
+65              2                   soundFx
+67              2                   attackSnd
+69              1                   psiGroup
+70              1                   palette
+71                              combat_t com;
+71              2                   curHp
+73              2                   curPsi
+75              2                   charIx
+77              2                   id
+79              2                   readyItemIx
+81              2                   weaponIx
+83              2                   packIx
+85              1                   specialAttack
+86              1                   specialDefense
+87              2                   icon
+89              1                   curAc
+90              1                   curMove
+91              1                   status
+92              1                   allegiance
+93              1                   thaco
+94              1                   priority
+95              1                   flags
+96              1*6                 curStat[6]
+102             1                   direction
+103             1                   data
+104             1*6                 name[16]
+110             2               multimyac
+112             2               blows
+114             2               dice
+116             2               sides
+118             2               adddamage
+120             2*3             weapons[3]
+126             2*(30-2)        inventory[MAX_SLOTS-4]       // MAX_SLOTS = 30
+182             4               money
+186             2               mycontentscount
+188             2*80*2          contents[MAX_GPL_DISK_RECORD * 2]   // MAX_GPL_DISK_RECORD = 80
+508                             charCondition_t conditions;
+508             1*(124/8+1)         status[CND_MAX/8+1] // CND_MAX = 124
+524             1               acceptstuff // 49
+525             1*(269-235)     psionicState_t psionicState[MAX_PSIONICS];      // MAX_PSIONICS = (FX_BEYOND_PSIONICS - FX_FIRST_PSIONIC) = (269 - 235) = 34
+559                                 u8_t	  maintain	: 1;  // maintain for next round
+559                                 u8_t	  aptitude	: 7;  // with ability "Power Score" (0 == no-access)
+559             1               slot
+560                             <end>
+
+                            'cspy'  // Spy request
+                            'espy'  // End spying
+                            'aspy'  // Spy?
+                            'uspy'  // Unspy
+                                No data.
+
+                            'quit'
+6               4               mypermid
+10                              <end>
+
+                            'mvbx'  // My move
+6               4               mypermid
+10              4               combatnum
+14              2               on
+16              2               region
+18              1*16            name[16]
+34              2               curhp
+36              2               basehp
+38              2               istatus
+40              2               gcommoveleft
+42                              <end>
+
+                            'attk'
+6               4               mypermid
+10              4               combatnum
+14              2               region
+16              4               obid
+20              4               obclone
+24              4               obpermid
+28              4               targid
+32              4               targclone
+36              4               targpermid
+40              4               obmapx
+44              4               obmapy
+48              4               targmapx
+52              4               targmapy
+56              2               iDir
+58              2               iRange
+60              2               iWeaponId
+62                              <end>
+
+                            'splt'
+6               4               mypermid
+10              4               combatnum
+14              2               region
+16              4               targid
+20              4               targclone
+24              4               targpermid
+28              2               iDamage
+30              2               iDamageType
+32              2               targmapx
+34              2               targmapy
+36                              <end>
+
+                            'dama'  // Player damage
+6               4               attackerid
+10              4               victimid
+14              2               damage
+16              2               curHp
+18              1               status
+19              2               region
+21                              <end>
+
+                            'magi'  // Magic node
+6               4               mypermid
+10              2               region
+12              2               fxIx
+14              1               level
+15              2               destX
+17              2               destY
+19              2               lineX
+21              2               lineY
+23              4               srcid
+27              4               srcclone
+31              4               srcpermid
+35              4               dstid
+39              4               dstclone
+43              4               dstpermid
+47              1               gGplSpell
+48              2               gGplSpellX
+50              2               gGplSpellY 	  // characters position
+52              2               gGplSpellSide		 // characters position
+54              4               seed
+58                              <end>
+
+                            'cond'  // Condition
+6               4               mypermid
+10              4               combatnum
+14              2               region
+16              4               pcid
+20              4               pcclone
+24              4               pcpermid
+28              4               applierid
+32              4               applierclone
+36              4               applierpermid
+40              4               pcmapx
+44              4               pcmapy
+48              4               appliermapx
+52              4               appliermapy
+56              2               orgFxIx
+58              1               condition
+59              4               duration
+63              1               data
+64                              <end>
+
+                            'batl'
+                                Obsolete
+
+                            'PAUS'  // Pause
+6               4               clone
+10              2               x
+12              2               y
+14              2               diskid
+16              2               region
+18              2               onoff
+20                              <end>
+
+                            'ordr'  // Set order
+6               4               mypermid
+10              2               region
+12              2               idtype
+14              2               order
+16              2               data1
+18              2               data2
+20              2               mapx
+22              2               mapy
+24              2               iDiskIndex
+26              4               clonenum
+30              4               data1diskid
+34              4               data1clonenum
+38              4               data1permid
+42              4               isviolent
+46              2               combatnum
+48                              <end>
+
+                            'achk'  // Attack check
+6               4               mypermid
+10              2               region
+12              4               combatnum
+16                              <end>
+
+                            'dele'  // Delete me
+6               2               id
+8               4               clonenum
+12                              <end>
+
+                            'deor'  // Delete original
+6               2               origdeletecnt
+8               2*(80*2)        deleteidclone[NUMORIGDELETED*2]  // NUMORIGDELETED = 80
+328                             <end>
+
+                            'name'  // Change name
+6               4               command
+10              4               permid
+14              4               topermid
+18              1*16            newname[16]
+34                              <end>
+
+                            'inju'  // Injury
+6               4               command
+10              4               mypermid
+14              2               gregion
+16              1*16            name[16]
+32                              <end>
+
+                            'shar'  // Shared
+6               4               region
+10              4               addr
+14              4               len
+18              4*128           d[128]
+530                             <end>
+
+                            'rqln'  // Long set
+6               4               mypermid
+10              4               reqid
+14              4               mem
+18              4               value
+22                              <end>
+
+                            'rqil'  // Long request
+6               4               mypermid
+10              4               reqid
+14                              <end>
+
+                            'rqmy'  // Receive long request
+6               4               mypermid
+10              4*48            mycharfrom[REQSIZE]   // REQSIZE = 48
+202                             <end>
+
+                            'comb'  // Combat start (IPX)
+                                No data
+
+                            'rmfx'  // Remove FX
+6               4               mypermid
+10              4               frompermid
+14              4               command
+18              2               fx
+20              2               ispsionic
+22                              <end>
+
+===============================================================================
+
+                                    uitemstruct:
+6               1                       used
+7               4                       permid
+11              4                       date
+15              2                       x
+17              2                       y
+19              2                       region
+21              2                       container
+23                                      <end>
+
+===============================================================================
+
+Regions:
+    0:      Shared data
+    1:      Items
+    2:      Animates
+    3:      Doors
+    4:      Deaths/Monsters
+    5:      Containers/Initial Items
+    6:      RBanner
+
+Objects:
+    0:      Global Items
+    1:      Unique Items
+    2-17:   High Scores
+    18:     Charater Generated Graphics
+    19:     Check CRC
+    20:     Boot Message/Icon Choice
+    21:     Lock Region
+
+===============================================================================
